@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: sqljdbc42.jar mail.jar
+Main-Class: com.zc.RMSNotify
+
