@@ -16,7 +16,7 @@ import javax.mail.internet.MimeMessage;
 
 
 public class RMSNotify {
-    public static void main(String args[]) throws SQLException {
+    public static void start() throws SQLException {
 
         String sqlHost = "jdbc:sqlserver://JOSH-IT\\SQLEXPRESS;databaseName=SF Golden Adventures";
         String uName = "sa";
@@ -63,9 +63,11 @@ public class RMSNotify {
                         e.printStackTrace();
                     }
                 }
+
             }
         };
         t.start();
+
     }
 
     //Returns highest transaction number as an int
