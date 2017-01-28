@@ -9,7 +9,7 @@ import java.util.Scanner;
 public class Filer {
     public static void write(int transNumber) {
         try {
-            File fac = new File("C:\\Users\\Josh\\Documents\\JavaNotifier.txt");
+            File fac = new File(".\\JavaNotifier.txt");
             if (!fac.exists()) {
                 fac.createNewFile();
             }
@@ -27,7 +27,7 @@ public class Filer {
     public static int read() {
         int result = 0;
         try {
-            Scanner scanner = new Scanner(new File("C:\\Users\\Josh\\Documents\\JavaNotifier.txt"));
+            Scanner scanner = new Scanner(new File(".\\JavaNotifier.txt"));
             result = scanner.nextInt();
         } catch (FileNotFoundException e) {
             e.printStackTrace();

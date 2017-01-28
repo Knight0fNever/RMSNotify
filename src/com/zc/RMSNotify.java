@@ -1,5 +1,6 @@
 package com.zc;
 
+import java.util.Scanner;
 import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -15,9 +16,12 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 
-public class RMSNotify {
-    public static void start() throws SQLException {
 
+public class RMSNotify {
+    public static void main(String[] args) throws SQLException {
+        //Scanner in = new Scanner(System.in);
+        //System.out.print("Please enter email addresses separated by comma: ");
+        //String emails = in.nextLine();
         String sqlHost = "jdbc:sqlserver://JOSH-IT\\SQLEXPRESS;databaseName=SF Golden Adventures";
         String uName = "sa";
         String uPass = "Zcsf4119!";
@@ -27,15 +31,17 @@ public class RMSNotify {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        //Runs check for new transaction every 1 minute
+        //Runs check for new transaction every [time] minutes
         Thread t = new Thread() {
             @Override
             public void run() {
                 while(true) {
                     try {
-                        Thread.sleep(1000*60);
+                        int time = 30000;
+                        Thread.sleep(time);
                         Filer fl = new Filer();
                         int oldTransNumber = fl.read();
+                        System.out.println(oldTransNumber);
                         int transNumber = maxTransNum(con);
                         //Checks for new transaction number
                         if(transNumber > oldTransNumber) {
@@ -123,8 +129,8 @@ public class RMSNotify {
     public static void eSend(double total, double tax) {
 
         //Sending email account username and password
-        final String username = "joshc@zcollectionsf.com";
-        final String password = "Trumpet1283!";
+        final String username = "info@zcollectionsf.com";
+        final String password = "94133";
 
         //Email account server settings
         Properties props = new Properties();
@@ -144,9 +150,11 @@ public class RMSNotify {
         try {
 
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("joshc@zcollectionsf.com"));
+            message.setFrom(new InternetAddress("info@zcollectionsf.com"));
             message.setRecipients(Message.RecipientType.TO,
                     InternetAddress.parse("joshc@zcollectionsf.com"));
+            message.setRecipients(Message.RecipientType.BCC,
+                    InternetAddress.parse(""));
             message.setSubject("Sale Made at Hermitage");
             message.setText("Hermitage has made a sale in the amount of $" + (total - tax) + ".");
 
