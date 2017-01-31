@@ -1,6 +1,5 @@
 package com.zc;
 
-import java.util.Scanner;
 import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,9 +18,6 @@ import javax.mail.internet.MimeMessage;
 
 public class RMSNotify {
     public static void main(String[] args) throws SQLException {
-        //Scanner in = new Scanner(System.in);
-        //System.out.print("Please enter email addresses separated by comma: ");
-        //String emails = in.nextLine();
         String sqlHost = "jdbc:sqlserver://JOSH-IT\\SQLEXPRESS;databaseName=SF Golden Adventures";
         String uName = "sa";
         String uPass = "Zcsf4119!";
@@ -31,50 +27,34 @@ public class RMSNotify {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        //Runs check for new transaction every [time] minutes
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                while(true) {
-                    try {
-                        int time = 30000;
-                        Thread.sleep(time);
-                        Filer fl = new Filer();
-                        int oldTransNumber = fl.read();
-                        System.out.println(oldTransNumber);
-                        int transNumber = maxTransNum(con);
-                        //Checks for new transaction number
-                        if(transNumber > oldTransNumber) {
-                            int newTransNumber = maxTransNum(con);
-                            Filer wr = new Filer();
-                            wr.write(transNumber);
-                            //Gets new transaction information from DB
-                            String query = "SELECT TransactionNumber, Total, SalesTax FROM [Transaction] WHERE TransactionNumber = " + transNumber;
-                            double total = 0.00;
-                            double tax = 0.00;
-                            ResultSet rs = viewTable(con, query);
-                            while (rs.next()) {
-                                total = rs.getDouble("Total");
-                                tax = rs.getDouble("SalesTax");
-                                transNumber = rs.getInt("TransactionNumber");
-                            }
-                            if((total - tax) >= 2000.00) {
-                                eSend(total, tax);
-                            }
-                        }
-
-
-                    } catch (InterruptedException ie) {
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
+        try {
+            Filer fl = new Filer();
+            int oldTransNumber = fl.read();
+            int transNumber = maxTransNum(con);
+            //Checks for new transaction number
+            if(transNumber > oldTransNumber) {
+                int newTransNumber = maxTransNum(con);
+                Filer wr = new Filer();
+                wr.write(transNumber);
+                //Gets new transaction information from DB
+                String query = "SELECT TransactionNumber, Total, SalesTax FROM [Transaction] WHERE TransactionNumber = " + transNumber;
+                double total = 0.00;
+                double tax = 0.00;
+                ResultSet rs = viewTable(con, query);
+                while (rs.next()) {
+                    total = rs.getDouble("Total");
+                    tax = rs.getDouble("SalesTax");
+                    transNumber = rs.getInt("TransactionNumber");
                 }
-
+                if((total - tax) >= 2000.00) {
+                    eSend(total, tax);
+                }
             }
-        };
-        t.start();
-
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
+
 
     //Returns highest transaction number as an int
     public static int maxTransNum(Connection con) {
@@ -90,7 +70,6 @@ public class RMSNotify {
             ResultSet rs = viewTable(con, query);
             while (rs.next()) {
                 result = rs.getInt("TransactionNumber");
-                //System.out.println(result);
             }
         } catch (SQLException e) {
             e.printStackTrace();
