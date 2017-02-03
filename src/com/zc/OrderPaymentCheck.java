@@ -57,7 +57,8 @@ public class OrderPaymentCheck {
             if(newValues.get(i) != oldValues.get(i)) {
                 payment = newValues.get(i) - oldValues.get(i);
                 if(payment != 0) {
-                    eSendPayment(payment);
+                    //eSendPayment(payment);
+                    System.out.println("Layaway Payment Sent - Test");
                     OrderPaymentCreate.start(con);
                 }
             }

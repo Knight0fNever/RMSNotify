@@ -34,26 +34,27 @@ public class RMSNotify {
             int maxOrderNumber = maxOrderNumber(con);
             fl.writeTrans(maxOrderNumber);
         }
-        OrderPaymentCheck.readDeposit(con);
-        if(!new File(".\\JavaOrderNotifier.txt").exists()) {
+        File fac3 = new File(".\\OrderPayment.csv");
+        if(!fac3.exists()) {
             OrderPaymentCreate.start(con);
         }
-        //executeTrans(con);
-        //executeOrder(con);
+        OrderPaymentCheck.readDeposit(con);
+        executeTrans(con);
+        executeOrder(con);
     }
 
     public static void executeTrans(Connection con) {
         try {
             Filer fl = new Filer();
             int oldTransNumber = fl.readTrans();
+            System.out.println(oldTransNumber);
             int transNumber = maxTransNum(con);
+            System.out.println(transNumber);
             //Checks for new transaction number
             if(transNumber > oldTransNumber) {
-                int newTransNumber = maxTransNum(con);
                 Filer wr = new Filer();
                 wr.writeTrans(transNumber);
                 //Gets new transaction information from DB
-                //String query = "SELECT TransactionNumber, Total, SalesTax FROM [Transaction] WHERE TransactionNumber = " + transNumber;
                 String query = "SELECT [Transaction].TransactionNumber, Item.[Description], TransactionEntry.Price FROM [Transaction] " +
                 "LEFT JOIN TransactionEntry ON [Transaction].TransactionNumber = TransactionEntry.TransactionNumber " +
                 "LEFT JOIN Item ON TransactionEntry.ItemID = Item.ID " +
