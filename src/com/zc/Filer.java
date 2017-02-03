@@ -10,11 +10,10 @@ public class Filer {
     public static void writeTrans(int transNumber) {
         try {
             File fac = new File(".\\JavaNotifier.txt");
+            FileWriter write = new FileWriter(fac);
             if (!fac.exists()) {
                 fac.createNewFile();
             }
-            int r = 1;
-            FileWriter write = new FileWriter(fac);
             write.write(new Integer(transNumber).toString());
             write.flush();
             write.close();

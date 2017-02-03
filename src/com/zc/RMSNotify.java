@@ -1,60 +1,82 @@
 package com.zc;
 
+import java.io.IOException;
 import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.File;
 
+import static com.zc.Email.*;
 
 
 public class RMSNotify {
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException, IOException, ClassNotFoundException {
         String sqlHost = "jdbc:sqlserver://JOSH-IT\\SQLEXPRESS;databaseName=SF Golden Adventures";
         String uName = "sa";
         String uPass = "Zcsf4119!";
         Connection con = DriverManager.getConnection(sqlHost, uName, uPass);
-        try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+        Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+        File fac = new File(".\\JavaNotifier.txt");
+        if (!fac.exists()) {
+            fac.createNewFile();
+            Filer fl = new Filer();
+            int maxTransNumber = maxTransNum(con);
+            fl.writeTrans(maxTransNumber);
         }
-        executeTrans(con);
-        executeOrder(con);
+        File fac2 = new File(".\\JavaOrderNotifier.txt");
+        if (!fac2.exists()) {
+            fac2.createNewFile();
+            Filer fl = new Filer();
+            int maxOrderNumber = maxOrderNumber(con);
+            fl.writeTrans(maxOrderNumber);
+        }
+        OrderPaymentCheck.readDeposit(con);
+        if(!new File(".\\JavaOrderNotifier.txt").exists()) {
+            OrderPaymentCreate.start(con);
+        }
+        //executeTrans(con);
+        //executeOrder(con);
     }
 
     public static void executeTrans(Connection con) {
         try {
             Filer fl = new Filer();
             int oldTransNumber = fl.readTrans();
-            System.out.println(oldTransNumber);
             int transNumber = maxTransNum(con);
-            System.out.println(transNumber);
             //Checks for new transaction number
             if(transNumber > oldTransNumber) {
                 int newTransNumber = maxTransNum(con);
                 Filer wr = new Filer();
                 wr.writeTrans(transNumber);
                 //Gets new transaction information from DB
-                String query = "SELECT TransactionNumber, Total, SalesTax FROM [Transaction] WHERE TransactionNumber = " + transNumber;
-                double total = 0.00;
-                double tax = 0.00;
+                //String query = "SELECT TransactionNumber, Total, SalesTax FROM [Transaction] WHERE TransactionNumber = " + transNumber;
+                String query = "SELECT [Transaction].TransactionNumber, Item.[Description], TransactionEntry.Price FROM [Transaction] " +
+                "LEFT JOIN TransactionEntry ON [Transaction].TransactionNumber = TransactionEntry.TransactionNumber " +
+                "LEFT JOIN Item ON TransactionEntry.ItemID = Item.ID " +
+                "WHERE [Transaction].TransactionNumber = " + transNumber;
+                List<Double> price = new ArrayList<Double>();
+                List<String> item = new ArrayList<String>();
                 ResultSet rs = viewTable(con, query);
                 while (rs.next()) {
-                    total = rs.getDouble("Total");
-                    tax = rs.getDouble("SalesTax");
+                    item.add(rs.getString("Description"));
+                    price.add(rs.getDouble("Price"));
                     transNumber = rs.getInt("TransactionNumber");
                 }
-                if((total - tax) >= 2000.00) {
-                    eSend(total, tax);
+                double total = 0.00;
+                for(int i = 0; i < price.size(); i++) {
+                    total += price.get(i);
+                }
+                System.out.println("Transaction: " + transNumber);
+                System.out.println("Item: " + item);
+                System.out.println("Price: " + price);
+                System.out.println("Total: " + total);
+                if(total >= 2000.00) {
+                    //eSend(total, item);
+                    System.out.println("Test email complete - Sale");
                 }
             }
         } catch (SQLException e) {
@@ -67,34 +89,39 @@ public class RMSNotify {
             Filer fl = new Filer();
             int oldOrderNumber = fl.readOrder();
             System.out.println(oldOrderNumber);
-            int orderNumber = maxOrderNumber(con);
-            System.out.println(orderNumber);
+            int orderNumber = 0;
+            int newOrderNumber = maxOrderNumber(con);
+            System.out.println(newOrderNumber);
             //Checks for new order number
-            if(orderNumber > oldOrderNumber) {
-                int newTransNumber = maxOrderNumber(con);
+            if(newOrderNumber > oldOrderNumber) {
+                orderNumber = newOrderNumber;
                 int orderType = 0;
                 double orderDeposit = 0.00;
+                List<Double> price = new ArrayList<Double>();
+                List<String> item = new ArrayList<String>();
                 Filer wr = new Filer();
                 wr.writeOrder(orderNumber);
                 //Gets new order information from DB
-                String query = "SELECT ID, Total, Tax, Type, Deposit FROM [Order] WHERE ID = " + orderNumber;
-                double total = 0.00;
-                double tax = 0.00;
+                String query = "SELECT [Order].ID, [Order].[Type], [Order].Deposit, [OrderEntry].Price, OrderEntry.[Description] FROM [Order] " +
+                "LEFT JOIN OrderEntry ON [Order].ID = OrderEntry.OrderID WHERE [Order].ID = " + orderNumber;
                 ResultSet rs = viewTable(con, query);
                 while (rs.next()) {
-                    total = rs.getDouble("Total");
-                    tax = rs.getDouble("Tax");
-                    orderNumber = rs.getInt("ID");
+                    item.add(rs.getString("Description"));
+                    price.add(rs.getDouble("Price"));
                     orderType = rs.getInt("Type");
                     orderDeposit = rs.getDouble("Deposit");
                 }
-                System.out.println("Total: " + total);
-                System.out.println("Tax: " + tax);
-                System.out.println("Order Number: " + orderNumber);
-                System.out.println("Type: " + orderType);
-                System.out.println("Deposit: " + orderDeposit);
-                if(((total - tax) >= 2000.00) && orderType == 5) {
-                    eSendOrder(total, tax, orderDeposit);
+                double total = 0.00;
+                for(int i = 0; i < price.size(); i++) {
+                    total += price.get(i);
+                }
+                System.out.println(item);
+                System.out.println(price);
+                System.out.println(total);
+                System.out.println(orderDeposit);
+                if((total >= 2000.00) && orderType == 5) {
+                    //eSendOrder(total, orderDeposit, item);
+                    System.out.println("Test email complete - Layaway");
                 }
             }
         } catch (SQLException e) {
@@ -185,87 +212,6 @@ public class RMSNotify {
             }
         }
         return rs;
-    }
-    //Sends email containing SQL query results
-    public static void eSend(double total, double tax) {
-
-        //Sending email account username and password
-        final String username = "info@zcollectionsf.com";
-        final String password = "94133";
-
-        //Email account server settings
-        Properties props = new Properties();
-        props.put("mail.smtp.ssl.enable", "true");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.host", "smtpout.secureserver.net");
-        props.put("mail.smtp.port", "465");
-
-        Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, password);
-                    }
-                });
-
-        //Composes the email and sends it using above account information
-        try {
-
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("info@zcollectionsf.com"));
-            message.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse("joshc@zcollectionsf.com"));
-            message.setRecipients(Message.RecipientType.BCC,
-                    InternetAddress.parse(""));
-            message.setSubject("Sale Made at Hermitage");
-            message.setText("Hermitage has made a sale in the amount of $" + (total - tax) + ".");
-
-            Transport.send(message);
-
-            System.out.println("Done - Sale");
-
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    public static void eSendOrder(double total, double tax, double deposit) {
-
-        //Sending email account username and password
-        final String username = "info@zcollectionsf.com";
-        final String password = "94133";
-
-        //Email account server settings
-        Properties props = new Properties();
-        props.put("mail.smtp.ssl.enable", "true");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.host", "smtpout.secureserver.net");
-        props.put("mail.smtp.port", "465");
-
-        Session session = Session.getInstance(props,
-                new javax.mail.Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(username, password);
-                    }
-                });
-
-        //Composes the email and sends it using above account information
-        try {
-
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress("info@zcollectionsf.com"));
-            message.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse("joshc@zcollectionsf.com"));
-            message.setRecipients(Message.RecipientType.BCC,
-                    InternetAddress.parse(""));
-            message.setSubject("Layaway Made at Hermitage");
-            message.setText("Hermitage has made a layaway in the amount of $" + (total - tax) + " with a deposit of $" + deposit + ".");
-
-            Transport.send(message);
-
-            System.out.println("Done - Layaway");
-
-        } catch (MessagingException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
 
