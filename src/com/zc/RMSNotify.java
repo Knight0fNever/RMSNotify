@@ -16,8 +16,8 @@ import static com.zc.Email.*;
 public class RMSNotify {
     public static void main(String[] args) throws SQLException, IOException, ClassNotFoundException {
         String sqlHost = "jdbc:sqlserver://JOSH-IT\\SQLEXPRESS;databaseName=SF Golden Adventures";
-        String uName = "sa";
-        String uPass = "Zcsf4119!";
+        String uName = "";
+        String uPass = "";
         Connection con = DriverManager.getConnection(sqlHost, uName, uPass);
         Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         File fac = new File(".\\JavaNotifier.txt");
