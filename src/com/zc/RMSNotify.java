@@ -102,10 +102,11 @@ public class RMSNotify {
                 double orderDeposit = 0.00;
                 List<Double> price = new ArrayList<Double>();
                 List<String> item = new ArrayList<String>();
+                List<Integer> quantity = new ArrayList<>();
                 Filer wr = new Filer();
                 wr.writeOrder(orderNumber);
                 //Gets new order information from DB
-                String query = "SELECT [Order].ID, [Order].[Type], [Order].Deposit, [OrderEntry].Price, OrderEntry.[Description] FROM [Order] " +
+                String query = "SELECT [Order].ID, [Order].[Type], [Order].Deposit, [OrderEntry].Price, OrderEntry.[Description], OrderEntry.QuantityOnOrder FROM [Order] " +
                         "LEFT JOIN OrderEntry ON [Order].ID = OrderEntry.OrderID WHERE [Order].ID = " + orderNumber;
                 ResultSet rs = viewTable(con, query);
                 while (rs.next()) {
@@ -113,10 +114,11 @@ public class RMSNotify {
                     price.add(rs.getDouble("Price"));
                     orderType = rs.getInt("Type");
                     orderDeposit = rs.getDouble("Deposit");
+                    quantity.add(rs.getInt("QuantityOnOrder"));
                 }
                 double total = 0.00;
                 for(int i = 0; i < price.size(); i++) {
-                    total += price.get(i);
+                    total += (price.get(i) * quantity.get(i));
                 }
                 //System.out.println(item);
                 //System.out.println(price);
