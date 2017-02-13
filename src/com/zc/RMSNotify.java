@@ -32,7 +32,7 @@ public class RMSNotify {
             fac2.createNewFile();
             Filer fl = new Filer();
             int maxOrderNumber = maxOrderNumber(con);
-            fl.writeTrans(maxOrderNumber);
+            fl.writeOrder(maxOrderNumber);
         }
         File fac3 = new File(".\\OrderPayment.csv");
         if(!fac3.exists()) {
@@ -47,37 +47,39 @@ public class RMSNotify {
         try {
             Filer fl = new Filer();
             int oldTransNumber = fl.readTrans();
-            System.out.println(oldTransNumber);
+            //System.out.println(oldTransNumber);
             int transNumber = maxTransNum(con);
-            System.out.println(transNumber);
+            //System.out.println(transNumber);
             //Checks for new transaction number
             if(transNumber > oldTransNumber) {
                 Filer wr = new Filer();
                 wr.writeTrans(transNumber);
                 //Gets new transaction information from DB
-                String query = "SELECT [Transaction].TransactionNumber, Item.[Description], TransactionEntry.Price FROM [Transaction] " +
-                "LEFT JOIN TransactionEntry ON [Transaction].TransactionNumber = TransactionEntry.TransactionNumber " +
-                "LEFT JOIN Item ON TransactionEntry.ItemID = Item.ID " +
-                "WHERE [Transaction].TransactionNumber = " + transNumber;
+                String query = "SELECT [Transaction].TransactionNumber, Item.[Description], TransactionEntry.Price, TransactionEntry.Quantity FROM [Transaction]" +
+                        "LEFT JOIN TransactionEntry ON [Transaction].TransactionNumber = TransactionEntry.TransactionNumber " +
+                        "LEFT JOIN Item ON TransactionEntry.ItemID = Item.ID " +
+                        "WHERE [Transaction].TransactionNumber = " + transNumber;
                 List<Double> price = new ArrayList<Double>();
                 List<String> item = new ArrayList<String>();
+                List<Integer> quantity = new ArrayList<>();
                 ResultSet rs = viewTable(con, query);
                 while (rs.next()) {
                     item.add(rs.getString("Description"));
                     price.add(rs.getDouble("Price"));
                     transNumber = rs.getInt("TransactionNumber");
+                    quantity.add(rs.getInt("Quantity"));
                 }
                 double total = 0.00;
                 for(int i = 0; i < price.size(); i++) {
-                    total += price.get(i);
+                    total += (price.get(i) * quantity.get(i));
                 }
-                System.out.println("Transaction: " + transNumber);
-                System.out.println("Item: " + item);
-                System.out.println("Price: " + price);
-                System.out.println("Total: " + total);
+                //System.out.println("Transaction: " + transNumber);
+                //System.out.println("Item: " + item);
+                //System.out.println("Price: " + price);
+                //System.out.println("Total: " + total);
                 if(total >= 2000.00) {
-                    //eSend(total, item);
-                    System.out.println("Test email complete - Sale");
+                    eSend(total, item);
+                    //System.out.println("Test email complete - Sale");
                 }
             }
         } catch (SQLException e) {
@@ -89,10 +91,10 @@ public class RMSNotify {
         try {
             Filer fl = new Filer();
             int oldOrderNumber = fl.readOrder();
-            System.out.println(oldOrderNumber);
+            //System.out.println(oldOrderNumber);
             int orderNumber = 0;
             int newOrderNumber = maxOrderNumber(con);
-            System.out.println(newOrderNumber);
+            //System.out.println(newOrderNumber);
             //Checks for new order number
             if(newOrderNumber > oldOrderNumber) {
                 orderNumber = newOrderNumber;
@@ -104,7 +106,7 @@ public class RMSNotify {
                 wr.writeOrder(orderNumber);
                 //Gets new order information from DB
                 String query = "SELECT [Order].ID, [Order].[Type], [Order].Deposit, [OrderEntry].Price, OrderEntry.[Description] FROM [Order] " +
-                "LEFT JOIN OrderEntry ON [Order].ID = OrderEntry.OrderID WHERE [Order].ID = " + orderNumber;
+                        "LEFT JOIN OrderEntry ON [Order].ID = OrderEntry.OrderID WHERE [Order].ID = " + orderNumber;
                 ResultSet rs = viewTable(con, query);
                 while (rs.next()) {
                     item.add(rs.getString("Description"));
@@ -116,13 +118,13 @@ public class RMSNotify {
                 for(int i = 0; i < price.size(); i++) {
                     total += price.get(i);
                 }
-                System.out.println(item);
-                System.out.println(price);
-                System.out.println(total);
-                System.out.println(orderDeposit);
+                //System.out.println(item);
+                //System.out.println(price);
+                //System.out.println(total);
+                //System.out.println(orderDeposit);
                 if((total >= 2000.00) && orderType == 5) {
-                    //eSendOrder(total, orderDeposit, item);
-                    System.out.println("Test email complete - Layaway");
+                    eSendOrder(total, orderDeposit, item);
+                    //System.out.println("Test email complete - Layaway");
                 }
             }
         } catch (SQLException e) {
@@ -176,7 +178,7 @@ public class RMSNotify {
         }
         try {
             String query = "DECLARE @orderNumber int SELECT @orderNumber = MAX(ID) FROM [Order]" +
-            "SELECT ID FROM [Order] WHERE ID = @orderNumber";
+                    "SELECT ID FROM [Order] WHERE ID = @orderNumber";
             ResultSet rs = viewTable(con, query);
             while (rs.next()) {
                 result = rs.getInt("ID");
@@ -215,5 +217,3 @@ public class RMSNotify {
         return rs;
     }
 }
-
-
